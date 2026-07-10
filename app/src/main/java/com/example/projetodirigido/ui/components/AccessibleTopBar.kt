@@ -42,8 +42,6 @@ fun AccessibleTopBar(
                 fontWeight = FontWeight.Bold,
                 color = colors.textPrimary
             )
-
-            TopBarButton(text = "🔊 Ler", colors = colors, onClick = onReadScreen)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -53,6 +51,7 @@ fun AccessibleTopBar(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TopBarButton(text = "− A", colors = colors, onClick = onDecreaseFont)
             TopBarButton(text = "+ A", colors = colors, onClick = onIncreaseFont)
+            TopBarButton(text = "🔊 Ler", colors = colors, onClick = onReadScreen)
             TopBarButton(
                 text = if (isHighContrast) "Contraste ✓" else "Contraste",
                 colors = colors,

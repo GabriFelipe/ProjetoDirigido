@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.projetodirigido.ui.components.AccessibleTopBar
+import com.example.projetodirigido.ui.components.EmergencySection
 import com.example.projetodirigido.ui.components.ShortcutCard
 import com.example.projetodirigido.ui.components.VerticalScrollIndicator
 import com.example.projetodirigido.ui.theme.DefaultColors
@@ -31,6 +32,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
     val context = LocalContext.current
     val fontScale by viewModel.fontScale.collectAsState()
     val highContrast by viewModel.highContrast.collectAsState()
+    val emergencyContact by viewModel.emergencyContact.collectAsState()
     val colors = if (highContrast) HighContrastColors else DefaultColors
 
     // TTS: criado uma vez por composição da tela e liberado ao sair.
@@ -115,6 +117,19 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                             IntentHelper.openApp(context, shortcut.packageName, shortcut.fallbackUrl)
                         }
                     )
+                }
+
+                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                    Column(modifier = Modifier.padding(top = 20.dp)) {
+                        EmergencySection(
+                            colors = colors,
+                            fontScale = fontScale,
+                            contact = emergencyContact,
+                            onSaveContact = { name, phone ->
+                                viewModel.saveEmergencyContact(name, phone)
+                            }
+                        )
+                    }
                 }
             }
 

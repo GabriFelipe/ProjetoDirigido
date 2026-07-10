@@ -54,4 +54,39 @@ object IntentHelper {
         val url = "https://wa.me/$cleanPhone?text=$encodedMessage"
         openUrl(context, url)
     }
+
+    /**
+     * Liga diretamente para o número (1 clique, sem passar pelo discador),
+     * usada quando o app já tem a permissão CALL_PHONE concedida.
+     */
+    fun call(context: Context, phoneNumber: String) {
+        try {
+            val cleanNumber = phoneNumber.filter { it.isDigit() }
+            val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$cleanNumber"))
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Sem permissão (ou outro erro) -> cai para o discador, que não
+            // exige permissão e ainda deixa o número pronto, faltando só
+            // tocar em ligar.
+            dial(context, phoneNumber)
+        }
+    }
+
+    /**
+     * Abre o discador com o número já preenchido. Não requer permissão,
+     * mas exige mais um toque do usuário para confirmar a ligação.
+     */
+    fun dial(context: Context, phoneNumber: String) {
+        try {
+            val cleanNumber = phoneNumber.filter { it.isDigit() }
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$cleanNumber"))
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(
+                context,
+                "Não foi possível abrir o discador.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 }
