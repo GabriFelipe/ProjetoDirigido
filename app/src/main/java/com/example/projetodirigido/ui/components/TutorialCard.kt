@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.projetodirigido.model.Tutorial
 import com.example.projetodirigido.ui.theme.AppColors
+import com.example.projetodirigido.ui.theme.scaledDp
 
 /**
  * Card grande e tocável de um tutorial, na lista da guia "Aprenda Passo a
@@ -49,14 +50,14 @@ fun TutorialCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(48.scaledDp(fontScale))
                     .background(iconBackgroundFor(tutorial.id, colors, isHighContrast), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(text = tutorial.emojiIcon, fontSize = (20 * fontScale).sp)
             }
 
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = tutorial.title,
                     fontSize = (17 * fontScale).sp,

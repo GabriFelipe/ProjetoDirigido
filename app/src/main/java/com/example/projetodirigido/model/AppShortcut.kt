@@ -8,13 +8,24 @@ package com.example.projetodirigido.model
  * @param emojiIcon Ícone simples (emoji) usado enquanto não há ícones vetoriais definidos.
  * @param packageName Pacote do app real no Android (usado para abrir via Intent).
  * @param fallbackUrl Link usado caso o app não esteja instalado (abre no navegador).
+ * @param searchQuery Se preenchido, o atalho ignora [packageName]/[fallbackUrl] e
+ *        abre direto uma busca do Google com esse texto. Necessário para atalhos
+ *        como "Previsão do tempo": abrir o app do Google pelo pacote só leva à
+ *        tela inicial dele (Discover), sem nenhuma busca — então nunca mostra o
+ *        resultado desejado. Forçando uma busca de verdade, o resultado (ex: o
+ *        card de clima) sempre aparece, com ou sem o app do Google instalado.
+ * @param opensBankPicker Se true, o atalho ignora [packageName]/[fallbackUrl] e,
+ *        em vez de abrir um app direto, mostra uma lista para o usuário escolher
+ *        entre os principais bancos (ver [com.example.projetodirigido.model.DefaultBanks]).
  */
 data class AppShortcut(
     val title: String,
     val subtitle: String,
     val emojiIcon: String,
     val packageName: String,
-    val fallbackUrl: String
+    val fallbackUrl: String,
+    val searchQuery: String? = null,
+    val opensBankPicker: Boolean = false
 )
 
 /**
@@ -52,11 +63,12 @@ object DefaultShortcuts {
             fallbackUrl = "https://www.google.com"
         ),
         AppShortcut(
-            title = "Banco do Brasil",
-            subtitle = "Acessar sua conta",
+            title = "Acesse seu banco",
+            subtitle = "Escolha seu banco para entrar",
             emojiIcon = "🏦",
-            packageName = "br.com.bb.android",
-            fallbackUrl = "https://www.bb.com.br"
+            packageName = "",
+            fallbackUrl = "",
+            opensBankPicker = true
         ),
         AppShortcut(
             title = "Drogasil",
@@ -77,7 +89,8 @@ object DefaultShortcuts {
             subtitle = "Ver o clima de hoje",
             emojiIcon = "☁️",
             packageName = "com.google.android.googlequicksearchbox",
-            fallbackUrl = "https://www.google.com/search?q=previsao+do+tempo"
+            fallbackUrl = "https://www.google.com/search?q=previsao+do+tempo",
+            searchQuery = "previsão do tempo"
         )
     )
 }

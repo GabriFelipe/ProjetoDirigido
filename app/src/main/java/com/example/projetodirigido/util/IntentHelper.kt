@@ -29,6 +29,41 @@ object IntentHelper {
         }
     }
 
+    /**
+     * Abre a página de um app na Google Play, para instalar (ou abrir, se já
+     * estiver instalado). Tenta primeiro abrir direto pelo app da Play Store
+     * (link "market://"), que já cai na tela de instalação com um toque; se
+     * a Play Store não puder abrir esse link (ex: não instalada), cai para
+     * o link "https://" equivalente, que abre no navegador.
+     *
+     * @param playStorePackage Package name do app na Play Store, ex: "com.whatsapp".
+     */
+    fun openPlayStore(context: Context, playStorePackage: String) {
+        try {
+            val marketIntent = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("market://details?id=$playStorePackage")
+            )
+            context.startActivity(marketIntent)
+        } catch (e: Exception) {
+            openUrl(
+                context,
+                "https://play.google.com/store/apps/details?id=$playStorePackage"
+            )
+        }
+    }
+
+    /**
+     * Abre o Google já com a pesquisa pronta, a partir de um texto digitado
+     * pelo usuário (usado na caixa "Digite aqui sua dúvida" do tutorial
+     * "Como pesquisar algo no Google"). Abre no navegador, que já mostra os
+     * resultados da busca direto, sem precisar digitar de novo.
+     */
+    fun openGoogleSearch(context: Context, query: String) {
+        val encodedQuery = Uri.encode(query.trim())
+        openUrl(context, "https://www.google.com/search?q=$encodedQuery")
+    }
+
     fun openUrl(context: Context, url: String) {
         try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))

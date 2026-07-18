@@ -23,9 +23,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.projetodirigido.model.Tutorial
 import com.example.projetodirigido.ui.components.AccessibleTopBar
+import com.example.projetodirigido.ui.components.BankPickerDialog
 import com.example.projetodirigido.ui.components.EmergencySection
 import com.example.projetodirigido.ui.components.ShortcutCard
-import com.example.projetodirigido.ui.components.VerticalScrollIndicator
 import com.example.projetodirigido.ui.learn.LearnScreen
 import com.example.projetodirigido.ui.learn.TutorialDetailScreen
 import com.example.projetodirigido.ui.learn.buildTutorialSpeech
@@ -58,6 +58,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
     val colors = if (highContrast) HighContrastColors else DefaultColors
 
     var route by remember { mutableStateOf<HomeRoute>(HomeRoute.Shortcuts) }
+    var showBankPicker by remember { mutableStateOf(false) }
 
     // TTS: criado uma vez por composição da tela e liberado ao sair.
     val ttsHelper = remember { TtsHelper(context) }
@@ -77,10 +78,23 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
+            // Mesma lógica do topo: em celulares com navegação por gestos
+            // (edge-to-edge), evita que o conteúdo de baixo (ex: botão
+            // "Concluí esse tutorial") fique escondido atrás da barra de
+            // navegação do sistema.
+            .navigationBarsPadding()
+            // Reduz a altura disponível da tela quando o teclado abre, para
+            // que a área rolável (LazyVerticalGrid) fique menor que o
+            // teclado ocupa. Isso, combinado com o comportamento padrão do
+            // Compose de rolar automaticamente o campo focado para dentro
+            // da área visível, evita que o teclado numérico cubra os campos
+            // "Nome"/"Telefone" do formulário de emergência.
+            .imePadding()
     ) {
         AccessibleTopBar(
             colors = colors,
             isHighContrast = highContrast,
+            fontScale = fontScale,
             onDecreaseFont = viewModel::decreaseFont,
             onIncreaseFont = viewModel::increaseFont,
             onToggleContrast = viewModel::toggleContrast,
@@ -104,15 +118,22 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     LazyVerticalGrid(
                         state = gridState,
-                        columns = GridCells.Fixed(2),
+                        // Coluna única e de largura total: com 2 colunas fixas,
+                        // nomes mais longos ("Banco do Brasil", "Previsão do
+                        // tempo") ou a fonte ampliada (botão "+A") deixavam o
+                        // card estreito demais e o texto era cortado
+                        // ("Banco ...", "Previs..."). Em largura total, o
+                        // texto sempre tem espaço para quebrar linha em vez
+                        // de truncar, em qualquer tamanho de fonte.
+                        columns = GridCells.Fixed(1),
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 16.dp, end = 22.dp),
+                            .padding(horizontal = 16.dp),
                         contentPadding = PaddingValues(bottom = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                        item {
                             Column(modifier = Modifier.padding(vertical = 12.dp)) {
                                 Text(
                                     text = today,
@@ -135,7 +156,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                             }
                         }
 
-                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                        item {
                             LearnEntryCard(
                                 colors = colors,
                                 fontScale = fontScale,
@@ -143,7 +164,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                             )
                         }
 
-                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                        item {
                             Text(
                                 text = "Atalhos rápidos",
                                 fontSize = (20 * fontScale).sp,
@@ -159,12 +180,18 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                                 colors = colors,
                                 fontScale = fontScale,
                                 onClick = {
-                                    IntentHelper.openApp(context, shortcut.packageName, shortcut.fallbackUrl)
+                                    when {
+                                        shortcut.opensBankPicker -> showBankPicker = true
+                                        shortcut.searchQuery != null ->
+                                            IntentHelper.openGoogleSearch(context, shortcut.searchQuery)
+                                        else ->
+                                            IntentHelper.openApp(context, shortcut.packageName, shortcut.fallbackUrl)
+                                    }
                                 }
                             )
                         }
 
-                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                        item {
                             Column(modifier = Modifier.padding(top = 20.dp)) {
                                 EmergencySection(
                                     colors = colors,
@@ -178,17 +205,9 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                         }
                     }
 
-                    // Barra de rolagem real: acompanha o LazyGridState (some quando
-                    // o conteúdo cabe todo na tela, se move junto com o dedo).
-                    VerticalScrollIndicator(
-                        state = gridState,
-                        trackColor = colors.border.copy(alpha = 0.3f),
-                        thumbColor = colors.textSecondary.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 6.dp)
-                            .padding(vertical = 8.dp)
-                    )
+                    // Barra de rolagem lateral escondida a pedido: o
+                    // LazyVerticalGrid continua rolável normalmente, só a
+                    // "pílula" visual do lado direito não é mais desenhada.
                 }
             }
 
@@ -197,7 +216,8 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                     colors = colors,
                     fontScale = fontScale,
                     isHighContrast = highContrast,
-                    onOpenTutorial = { tutorial -> route = HomeRoute.TutorialDetail(tutorial) }
+                    onOpenTutorial = { tutorial -> route = HomeRoute.TutorialDetail(tutorial) },
+                    onBack = { route = HomeRoute.Shortcuts }
                 )
             }
 
@@ -213,6 +233,18 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                 )
             }
         }
+    }
+
+    if (showBankPicker) {
+        BankPickerDialog(
+            colors = colors,
+            fontScale = fontScale,
+            onBankSelected = { bank ->
+                IntentHelper.openApp(context, bank.packageName, bank.fallbackUrl)
+                showBankPicker = false
+            },
+            onDismiss = { showBankPicker = false }
+        )
     }
 }
 

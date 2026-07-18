@@ -14,6 +14,11 @@
         <package android:name="br.com.bb.android" />
         <package android:name="com.raiadrogasil.drogasil" />
         <package android:name="com.google.android.apps.tachyon" />
+        <package android:name="com.itau" />
+        <package android:name="com.bradesco" />
+        <package android:name="br.com.gabba.Caixa" />
+        <package android:name="com.santander.app" />
+        <package android:name="com.nu.production" />
     </queries>
 
     <application

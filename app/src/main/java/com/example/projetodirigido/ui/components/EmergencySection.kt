@@ -68,8 +68,8 @@ fun EmergencySection(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             EmergencyNumbers.list.forEach { number ->
@@ -80,7 +80,7 @@ fun EmergencySection(
                     colors = colors,
                     fontScale = fontScale,
                     onClick = { call(number.phone) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -124,46 +124,63 @@ private fun FamilyContactCard(
                 color = colors.textSecondary
             )
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Nome e telefone sempre em largura total, um abaixo do outro:
+            // isso evita que, em telas estreitas ou com a fonte ampliada
+            // (botão "+A"), o texto seja espremido pelos botões ao lado até
+            // quase 0dp de largura e quebre letra por letra. Os botões ficam
+            // numa linha própria logo abaixo, também com largura garantida.
+            Text(
+                text = contact.name,
+                fontSize = (17 * fontScale).sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = formatPhoneDisplay(contact.phone),
+                fontSize = (14 * fontScale).sp,
+                color = colors.textSecondary,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.weight(1f, fill = false)) {
+                OutlinedButton(
+                    onClick = { isEditing = true },
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, colors.border),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = colors.textPrimary
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
-                        text = contact.name,
-                        fontSize = (17 * fontScale).sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
-                    )
-                    Text(
-                        text = formatPhoneDisplay(contact.phone),
+                        text = "✏️ Editar",
                         fontSize = (14 * fontScale).sp,
-                        color = colors.textSecondary
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = { isEditing = true },
-                        shape = RoundedCornerShape(50),
-                        border = BorderStroke(1.dp, colors.border),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = colors.textPrimary
-                        )
-                    ) {
-                        Text(text = "✏️ Editar", fontSize = (14 * fontScale).sp, fontWeight = FontWeight.Bold)
-                    }
-                    Button(
-                        onClick = { onCall(contact.phone) },
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.dangerButton,
-                            contentColor = colors.onDangerButton
-                        )
-                    ) {
-                        Text(text = "📞 Ligar", fontSize = (15 * fontScale).sp, fontWeight = FontWeight.Bold)
-                    }
+                Button(
+                    onClick = { onCall(contact.phone) },
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.dangerButton,
+                        contentColor = colors.onDangerButton
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "📞 Ligar",
+                        fontSize = (15 * fontScale).sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
                 }
             }
         } else {
@@ -182,35 +199,73 @@ private fun FamilyContactCard(
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        showError = false
-                    },
-                    label = { Text("Nome") },
-                    placeholder = { Text("Ex: Maria (filha)") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = {
-                        phone = it
-                        showError = false
-                    },
-                    label = { Text("Telefone") },
-                    placeholder = { Text("(11) 99999-9999") },
-                    singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
+            // Em telas estreitas, os dois campos lado a lado ficariam
+            // apertados demais (ex: rótulo "Telefone" cortado). Por isso,
+            // medimos o espaço disponível e empilhamos os campos em vez de
+            // colocá-los lado a lado quando a largura for pequena.
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val stackFields = maxWidth < 340.dp
+
+                if (stackFields) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = {
+                                name = it
+                                showError = false
+                            },
+                            label = { Text("Nome") },
+                            placeholder = { Text("Ex: Maria (filha)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = phone,
+                            onValueChange = {
+                                phone = it
+                                showError = false
+                            },
+                            label = { Text("Telefone") },
+                            placeholder = { Text("(11) 99999-9999") },
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = {
+                                name = it
+                                showError = false
+                            },
+                            label = { Text("Nome") },
+                            placeholder = { Text("Ex: Maria (filha)") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = phone,
+                            onValueChange = {
+                                phone = it
+                                showError = false
+                            },
+                            label = { Text("Telefone") },
+                            placeholder = { Text("(11) 99999-9999") },
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
 
             if (showError) {
@@ -226,9 +281,9 @@ private fun FamilyContactCard(
 
             val isFilled = name.isNotBlank() && phone.filter { it.isDigit() }.length >= 8
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
                     onClick = {
@@ -245,7 +300,8 @@ private fun FamilyContactCard(
                         contentColor = colors.textPrimary,
                         disabledContainerColor = colors.accent.copy(alpha = 0.5f),
                         disabledContentColor = colors.textPrimary.copy(alpha = 0.6f)
-                    )
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = if (contact != null) "✓ Salvar alterações" else "✓ Salvar contato",
@@ -256,13 +312,19 @@ private fun FamilyContactCard(
 
                 // "Cancelar" só faz sentido quando já existia um contato
                 // salvo antes (edição) — em um cadastro novo não há para
-                // onde voltar.
+                // onde voltar. Fica em largura total, abaixo do botão de
+                // salvar, para nunca ser espremido a ponto de quebrar em
+                // "Canc" / "elar" como acontecia ao lado do botão largo.
                 if (contact != null) {
-                    TextButton(onClick = { isEditing = false }) {
+                    TextButton(
+                        onClick = { isEditing = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
                             text = "Cancelar",
                             fontSize = (14 * fontScale).sp,
-                            color = colors.textSecondary
+                            color = colors.textSecondary,
+                            maxLines = 1
                         )
                     }
                 }
@@ -282,27 +344,28 @@ private fun EmergencyCallButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Row(
         modifier = modifier
             .background(colors.dangerButton, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 18.dp, horizontal = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(vertical = 16.dp, horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(text = icon, fontSize = (22 * fontScale).sp)
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = label,
-            fontSize = (15 * fontScale).sp,
-            fontWeight = FontWeight.Bold,
-            color = colors.onDangerButton
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = "📞 $phone",
-            fontSize = (13 * fontScale).sp,
-            color = colors.onDangerButton.copy(alpha = 0.9f)
-        )
+        Text(text = icon, fontSize = (24 * fontScale).sp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                fontSize = (16 * fontScale).sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.onDangerButton
+            )
+            Text(
+                text = "📞 $phone",
+                fontSize = (13 * fontScale).sp,
+                color = colors.onDangerButton.copy(alpha = 0.9f)
+            )
+        }
     }
 }
 

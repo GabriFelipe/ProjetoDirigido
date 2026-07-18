@@ -2,6 +2,7 @@ package com.example.projetodirigido.ui.learn
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -9,13 +10,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.projetodirigido.model.Tutorial
 import com.example.projetodirigido.ui.theme.AppColors
+import com.example.projetodirigido.ui.theme.scaledDp
+import com.example.projetodirigido.util.IntentHelper
 
 /**
  * Tela de detalhe de um tutorial: abre "em uma aba" dentro do próprio app
@@ -138,6 +146,15 @@ fun TutorialDetailScreen(
                 }
             }
 
+            // Caixa "Digite aqui sua dúvida": só aparece no tutorial "Como
+            // pesquisar algo no Google", como uma forma de já praticar o que
+            // acabou de aprender, sem precisar sair do tutorial.
+            if (tutorial.id == "google") {
+                item {
+                    GoogleSearchBox(colors = colors, fontScale = fontScale)
+                }
+            }
+
             item {
                 Button(
                     onClick = onBack,
@@ -176,7 +193,7 @@ private fun TutorialStepRow(
     ) {
         Box(
             modifier = Modifier
-                .size(30.dp)
+                .size(30.scaledDp(fontScale))
                 .background(colors.accent, CircleShape),
             contentAlignment = Alignment.Center
         ) {
@@ -193,6 +210,71 @@ private fun TutorialStepRow(
             color = colors.textPrimary,
             modifier = Modifier.weight(1f)
         )
+    }
+}
+
+/**
+ * Caixa de prática mostrada só no fim do tutorial "Como pesquisar algo no
+ * Google": o usuário digita uma dúvida real e, ao tocar em "Pesquisar", o
+ * app abre o Google já com a busca pronta (sem precisar digitar de novo lá).
+ */
+@Composable
+private fun GoogleSearchBox(
+    colors: AppColors,
+    fontScale: Float,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var query by remember { mutableStateOf("") }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.surface, RoundedCornerShape(16.dp))
+            .border(BorderStroke(1.dp, colors.border), RoundedCornerShape(16.dp))
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Agora é sua vez!",
+            fontSize = (16 * fontScale).sp,
+            fontWeight = FontWeight.Bold,
+            color = colors.textPrimary
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text(text = "Digite aqui sua dúvida", fontSize = (15 * fontScale).sp) },
+            textStyle = androidx.compose.ui.text.TextStyle(fontSize = (15 * fontScale).sp),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = colors.accent,
+                unfocusedBorderColor = colors.border,
+                focusedTextColor = colors.textPrimary,
+                unfocusedTextColor = colors.textPrimary
+            )
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = { IntentHelper.openGoogleSearch(context, query) },
+            enabled = query.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colors.accent,
+                contentColor = colors.textPrimary
+            )
+        ) {
+            Text(
+                text = "🔍 Pesquisar",
+                fontSize = (16 * fontScale).sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 

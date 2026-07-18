@@ -15,18 +15,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.projetodirigido.model.AppShortcut
+import com.example.projetodirigido.model.InstallableApp
 import com.example.projetodirigido.ui.theme.AppColors
 import com.example.projetodirigido.ui.theme.scaledDp
 
 /**
- * Card grande e tocável representando um atalho (ex: WhatsApp, Gmail).
- * Área de toque generosa (todo o card), seguindo boas práticas de
- * acessibilidade para usuários com menor precisão motora.
+ * Card grande e tocável de um app para instalar, na seção "Aplicativos" da
+ * guia "Aprenda Passo a Passo". Segue o mesmo padrão visual do
+ * [ShortcutCard] (ícone + título + descrição, área de toque generosa), mas
+ * inclui um selo "Instalar" para deixar claro que o toque leva à Google
+ * Play, e não abre o app diretamente (o usuário pode não ter instalado
+ * ainda).
  */
 @Composable
-fun ShortcutCard(
-    shortcut: AppShortcut,
+fun InstallableAppCard(
+    app: InstallableApp,
     colors: AppColors,
     fontScale: Float,
     onClick: () -> Unit,
@@ -52,24 +55,38 @@ fun ShortcutCard(
                     .background(colors.accent, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = shortcut.emojiIcon, fontSize = (20 * fontScale).sp)
+                Text(text = app.emojiIcon, fontSize = (20 * fontScale).sp)
             }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = shortcut.title,
+                    text = app.title,
                     fontSize = (16 * fontScale).sp,
                     fontWeight = FontWeight.Bold,
-                    color = colors.textPrimary,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    color = colors.textPrimary
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = shortcut.subtitle,
+                    text = app.subtitle,
                     fontSize = (13 * fontScale).sp,
-                    color = colors.textSecondary,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    color = colors.textSecondary
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Selo "Instalar": deixa claro que o toque leva à Google Play,
+            // diferente dos atalhos da tela inicial (que abrem o app direto).
+            Box(
+                modifier = Modifier
+                    .background(colors.accent, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "Instalar",
+                    fontSize = (12 * fontScale).sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
                 )
             }
         }
