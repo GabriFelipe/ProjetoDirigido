@@ -1,5 +1,6 @@
 package com.example.projetodirigido.ui.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import com.example.projetodirigido.ui.learn.buildTutorialSpeech
 import com.example.projetodirigido.ui.theme.AppColors
 import com.example.projetodirigido.ui.theme.DefaultColors
 import com.example.projetodirigido.ui.theme.HighContrastColors
+import com.example.projetodirigido.ui.theme.LocalReadAloud
 import com.example.projetodirigido.util.IntentHelper
 import com.example.projetodirigido.util.TtsHelper
 import java.text.SimpleDateFormat
@@ -55,10 +57,25 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
     val fontScale by viewModel.fontScale.collectAsState()
     val highContrast by viewModel.highContrast.collectAsState()
     val emergencyContact by viewModel.emergencyContact.collectAsState()
+    val isReadingModeActive by viewModel.isReadingModeActive.collectAsState()
     val colors = if (highContrast) HighContrastColors else DefaultColors
 
     var route by remember { mutableStateOf<HomeRoute>(HomeRoute.Shortcuts) }
     var showBankPicker by remember { mutableStateOf(false) }
+
+    // Botão de voltar do celular: dentro de um tutorial, volta para a lista
+    // de tutoriais; dentro da guia "Aprenda passo a passo", volta para a
+    // tela inicial (Atalhos rápidos). Só na tela inicial o botão de voltar
+    // volta a ter o comportamento padrão do sistema (fechar/minimizar o
+    // app), por isso o BackHandler fica desativado (enabled = false) nesse
+    // caso — do contrário o botão de voltar nunca fecharia o app.
+    BackHandler(enabled = route !is HomeRoute.Shortcuts) {
+        route = when (route) {
+            is HomeRoute.TutorialDetail -> HomeRoute.Learn
+            is HomeRoute.Learn -> HomeRoute.Shortcuts
+            is HomeRoute.Shortcuts -> HomeRoute.Shortcuts
+        }
+    }
 
     // TTS: criado uma vez por composição da tela e liberado ao sair.
     val ttsHelper = remember { TtsHelper(context) }
@@ -66,185 +83,208 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
         onDispose { ttsHelper.shutdown() }
     }
 
+    // Função compartilhada com todo o app (via LocalReadAloud): qualquer
+    // card/botão pode chamar isso no seu onClick para anunciar o que foi
+    // tocado. Só fala de verdade quando o modo "🔊 Ler" está ativo — quando
+    // desativado, a chamada não faz nada, então nenhum componente precisa
+    // verificar esse estado por conta própria.
+    val readAloud: (String) -> Unit = { text ->
+        if (isReadingModeActive) {
+            ttsHelper.speak(text)
+        }
+    }
+
     val today = remember {
         val formatter = SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", Locale("pt", "BR"))
         formatter.format(Date()).replaceFirstChar { it.uppercase() }
     }
 
-    val greeting = "Olá! Como posso ajudar você hoje?"
-    val subtitle = "Escolha um atalho, aprenda algo novo ou converse com a Assistente."
+    val greeting = "Olá! Auxílio de leitura ativado."
+    val subtitle = "Clique novamente para desativar."
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-            // Mesma lógica do topo: em celulares com navegação por gestos
-            // (edge-to-edge), evita que o conteúdo de baixo (ex: botão
-            // "Concluí esse tutorial") fique escondido atrás da barra de
-            // navegação do sistema.
-            .navigationBarsPadding()
-            // Reduz a altura disponível da tela quando o teclado abre, para
-            // que a área rolável (LazyVerticalGrid) fique menor que o
-            // teclado ocupa. Isso, combinado com o comportamento padrão do
-            // Compose de rolar automaticamente o campo focado para dentro
-            // da área visível, evita que o teclado numérico cubra os campos
-            // "Nome"/"Telefone" do formulário de emergência.
-            .imePadding()
-    ) {
-        AccessibleTopBar(
-            colors = colors,
-            isHighContrast = highContrast,
-            fontScale = fontScale,
-            onDecreaseFont = viewModel::decreaseFont,
-            onIncreaseFont = viewModel::increaseFont,
-            onToggleContrast = viewModel::toggleContrast,
-            onReadScreen = {
-                when (val currentRoute = route) {
-                    is HomeRoute.Shortcuts -> ttsHelper.speak("$greeting. $subtitle")
-                    is HomeRoute.Learn -> ttsHelper.speak(
-                        "Aprenda passo a passo. Toque em um tutorial e vamos ensinar com calma."
-                    )
-                    is HomeRoute.TutorialDetail -> ttsHelper.speak(
-                        buildTutorialSpeech(currentRoute.tutorial)
-                    )
+    CompositionLocalProvider(LocalReadAloud provides readAloud) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.background)
+                // Mesma lógica do topo: em celulares com navegação por gestos
+                // (edge-to-edge), evita que o conteúdo de baixo (ex: botão
+                // "Concluí esse tutorial") fique escondido atrás da barra de
+                // navegação do sistema.
+                .navigationBarsPadding()
+                // Reduz a altura disponível da tela quando o teclado abre, para
+                // que a área rolável (LazyVerticalGrid) fique menor que o
+                // teclado ocupa. Isso, combinado com o comportamento padrão do
+                // Compose de rolar automaticamente o campo focado para dentro
+                // da área visível, evita que o teclado numérico cubra os campos
+                // "Nome"/"Telefone" do formulário de emergência.
+                .imePadding()
+        ) {
+            AccessibleTopBar(
+                colors = colors,
+                isHighContrast = highContrast,
+                fontScale = fontScale,
+                onDecreaseFont = viewModel::decreaseFont,
+                onIncreaseFont = viewModel::increaseFont,
+                onToggleContrast = viewModel::toggleContrast,
+                isReadingModeActive = isReadingModeActive,
+                onReadScreen = {
+                    val turnedOn = viewModel.toggleReadingMode()
+                    if (turnedOn) {
+                        // Ao ligar o modo, já lê a tela atual de cara — e, a
+                        // partir daí, qualquer opção tocada também será lida.
+                        when (val currentRoute = route) {
+                            is HomeRoute.Shortcuts -> ttsHelper.speak("$greeting. $subtitle")
+                            is HomeRoute.Learn -> ttsHelper.speak(
+                                "Aprenda passo a passo. Toque em um tutorial e vamos ensinar com calma."
+                            )
+                            is HomeRoute.TutorialDetail -> ttsHelper.speak(
+                                buildTutorialSpeech(currentRoute.tutorial)
+                            )
+                        }
+                    } else {
+                        // Ao desligar, interrompe qualquer fala em andamento.
+                        ttsHelper.stop()
+                    }
                 }
-            }
-        )
+            )
 
-        when (val currentRoute = route) {
-            is HomeRoute.Shortcuts -> {
-                val gridState = rememberLazyGridState()
+            when (val currentRoute = route) {
+                is HomeRoute.Shortcuts -> {
+                    val gridState = rememberLazyGridState()
 
-                Box(modifier = Modifier.fillMaxSize()) {
-                    LazyVerticalGrid(
-                        state = gridState,
-                        // Coluna única e de largura total: com 2 colunas fixas,
-                        // nomes mais longos ("Banco do Brasil", "Previsão do
-                        // tempo") ou a fonte ampliada (botão "+A") deixavam o
-                        // card estreito demais e o texto era cortado
-                        // ("Banco ...", "Previs..."). Em largura total, o
-                        // texto sempre tem espaço para quebrar linha em vez
-                        // de truncar, em qualquer tamanho de fonte.
-                        columns = GridCells.Fixed(1),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        contentPadding = PaddingValues(bottom = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        item {
-                            Column(modifier = Modifier.padding(vertical = 12.dp)) {
-                                Text(
-                                    text = today,
-                                    fontSize = (13 * fontScale).sp,
-                                    color = colors.textSecondary
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = greeting,
-                                    fontSize = (26 * fontScale).sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textPrimary
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = subtitle,
-                                    fontSize = (15 * fontScale).sp,
-                                    color = colors.textSecondary
-                                )
-                            }
-                        }
-
-                        item {
-                            LearnEntryCard(
-                                colors = colors,
-                                fontScale = fontScale,
-                                onClick = { route = HomeRoute.Learn }
-                            )
-                        }
-
-                        item {
-                            Text(
-                                text = "Atalhos rápidos",
-                                fontSize = (20 * fontScale).sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textPrimary,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-
-                        items(viewModel.shortcuts) { shortcut ->
-                            ShortcutCard(
-                                shortcut = shortcut,
-                                colors = colors,
-                                fontScale = fontScale,
-                                onClick = {
-                                    when {
-                                        shortcut.opensBankPicker -> showBankPicker = true
-                                        shortcut.searchQuery != null ->
-                                            IntentHelper.openGoogleSearch(context, shortcut.searchQuery)
-                                        else ->
-                                            IntentHelper.openApp(context, shortcut.packageName, shortcut.fallbackUrl)
-                                    }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LazyVerticalGrid(
+                            state = gridState,
+                            // Coluna única e de largura total: com 2 colunas fixas,
+                            // nomes mais longos ("Banco do Brasil", "Previsão do
+                            // tempo") ou a fonte ampliada (botão "+A") deixavam o
+                            // card estreito demais e o texto era cortado
+                            // ("Banco ...", "Previs..."). Em largura total, o
+                            // texto sempre tem espaço para quebrar linha em vez
+                            // de truncar, em qualquer tamanho de fonte.
+                            columns = GridCells.Fixed(1),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            contentPadding = PaddingValues(bottom = 24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            item {
+                                Column(modifier = Modifier.padding(vertical = 12.dp)) {
+                                    Text(
+                                        text = today,
+                                        fontSize = (13 * fontScale).sp,
+                                        color = colors.textSecondary
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = greeting,
+                                        fontSize = (26 * fontScale).sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textPrimary
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = subtitle,
+                                        fontSize = (15 * fontScale).sp,
+                                        color = colors.textSecondary
+                                    )
                                 }
-                            )
-                        }
+                            }
 
-                        item {
-                            Column(modifier = Modifier.padding(top = 20.dp)) {
-                                EmergencySection(
+                            item {
+                                LearnEntryCard(
                                     colors = colors,
                                     fontScale = fontScale,
-                                    contact = emergencyContact,
-                                    onSaveContact = { name, phone ->
-                                        viewModel.saveEmergencyContact(name, phone)
+                                    onClick = { route = HomeRoute.Learn }
+                                )
+                            }
+
+                            item {
+                                Text(
+                                    text = "Atalhos rápidos",
+                                    fontSize = (20 * fontScale).sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+
+                            items(viewModel.shortcuts) { shortcut ->
+                                ShortcutCard(
+                                    shortcut = shortcut,
+                                    colors = colors,
+                                    fontScale = fontScale,
+                                    onClick = {
+                                        readAloud(shortcut.title)
+                                        when {
+                                            shortcut.opensBankPicker -> showBankPicker = true
+                                            shortcut.searchQuery != null ->
+                                                IntentHelper.openGoogleSearch(context, shortcut.searchQuery)
+                                            else ->
+                                                IntentHelper.openApp(context, shortcut.packageName, shortcut.fallbackUrl)
+                                        }
                                     }
                                 )
                             }
-                        }
-                    }
 
-                    // Barra de rolagem lateral escondida a pedido: o
-                    // LazyVerticalGrid continua rolável normalmente, só a
-                    // "pílula" visual do lado direito não é mais desenhada.
+                            item {
+                                Column(modifier = Modifier.padding(top = 20.dp)) {
+                                    EmergencySection(
+                                        colors = colors,
+                                        fontScale = fontScale,
+                                        contact = emergencyContact,
+                                        onSaveContact = { name, phone ->
+                                            viewModel.saveEmergencyContact(name, phone)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Barra de rolagem lateral escondida a pedido: o
+                        // LazyVerticalGrid continua rolável normalmente, só a
+                        // "pílula" visual do lado direito não é mais desenhada.
+                    }
+                }
+
+                is HomeRoute.Learn -> {
+                    LearnScreen(
+                        colors = colors,
+                        fontScale = fontScale,
+                        isHighContrast = highContrast,
+                        onOpenTutorial = { tutorial -> route = HomeRoute.TutorialDetail(tutorial) },
+                        onBack = { route = HomeRoute.Shortcuts }
+                    )
+                }
+
+                is HomeRoute.TutorialDetail -> {
+                    TutorialDetailScreen(
+                        tutorial = currentRoute.tutorial,
+                        colors = colors,
+                        fontScale = fontScale,
+                        onBack = { route = HomeRoute.Learn },
+                        onReadTutorial = {
+                            ttsHelper.speak(buildTutorialSpeech(currentRoute.tutorial))
+                        }
+                    )
                 }
             }
-
-            is HomeRoute.Learn -> {
-                LearnScreen(
-                    colors = colors,
-                    fontScale = fontScale,
-                    isHighContrast = highContrast,
-                    onOpenTutorial = { tutorial -> route = HomeRoute.TutorialDetail(tutorial) },
-                    onBack = { route = HomeRoute.Shortcuts }
-                )
-            }
-
-            is HomeRoute.TutorialDetail -> {
-                TutorialDetailScreen(
-                    tutorial = currentRoute.tutorial,
-                    colors = colors,
-                    fontScale = fontScale,
-                    onBack = { route = HomeRoute.Learn },
-                    onReadTutorial = {
-                        ttsHelper.speak(buildTutorialSpeech(currentRoute.tutorial))
-                    }
-                )
-            }
         }
-    }
 
-    if (showBankPicker) {
-        BankPickerDialog(
-            colors = colors,
-            fontScale = fontScale,
-            onBankSelected = { bank ->
-                IntentHelper.openApp(context, bank.packageName, bank.fallbackUrl)
-                showBankPicker = false
-            },
-            onDismiss = { showBankPicker = false }
-        )
+        if (showBankPicker) {
+            BankPickerDialog(
+                colors = colors,
+                fontScale = fontScale,
+                onBankSelected = { bank ->
+                    IntentHelper.openApp(context, bank.packageName, bank.fallbackUrl)
+                    showBankPicker = false
+                },
+                onDismiss = { showBankPicker = false }
+            )
+        }
     }
 }
 
@@ -260,10 +300,14 @@ private fun LearnEntryCard(
     fontScale: Float,
     onClick: () -> Unit
 ) {
+    val readAloud = LocalReadAloud.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = {
+                readAloud("Aprenda passo a passo")
+                onClick()
+            }),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = colors.accent.copy(alpha = 0.35f)),
         border = BorderStroke(1.dp, colors.border),

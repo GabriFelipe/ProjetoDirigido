@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.projetodirigido.model.Tutorial
 import com.example.projetodirigido.ui.theme.AppColors
+import com.example.projetodirigido.ui.theme.LocalReadAloud
 import com.example.projetodirigido.ui.theme.scaledDp
 import com.example.projetodirigido.util.IntentHelper
 
@@ -46,6 +47,8 @@ fun TutorialDetailScreen(
     onReadTutorial: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val readAloud = LocalReadAloud.current
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -61,7 +64,7 @@ fun TutorialDetailScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             OutlinedButton(
-                onClick = onBack,
+                onClick = { readAloud("Voltar"); onBack() },
                 shape = MaterialTheme.shapes.extraLarge,
                 border = BorderStroke(1.dp, colors.border),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -157,7 +160,7 @@ fun TutorialDetailScreen(
 
             item {
                 Button(
-                    onClick = onBack,
+                    onClick = { readAloud("Concluí esse tutorial"); onBack() },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(
@@ -259,8 +262,12 @@ private fun GoogleSearchBox(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        val readAloud = LocalReadAloud.current
         Button(
-            onClick = { IntentHelper.openGoogleSearch(context, query) },
+            onClick = {
+                readAloud("Pesquisar")
+                IntentHelper.openGoogleSearch(context, query)
+            },
             enabled = query.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(50),

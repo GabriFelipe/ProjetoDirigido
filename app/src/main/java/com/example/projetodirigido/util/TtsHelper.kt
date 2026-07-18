@@ -23,6 +23,13 @@ class TtsHelper(context: Context) {
         }
     }
 
+    /** Interrompe qualquer fala em andamento, sem liberar o TextToSpeech (ele continua utilizável depois). */
+    fun stop() {
+        if (isReady) {
+            tts.stop()
+        }
+    }
+
     fun shutdown() {
         tts.stop()
         tts.shutdown()

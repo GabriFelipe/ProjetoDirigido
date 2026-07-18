@@ -37,6 +37,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _highContrast = MutableStateFlow(false)
     val highContrast: StateFlow<Boolean> = _highContrast.asStateFlow()
 
+    // Modo "🔊 Ler" ativado na barra superior: enquanto estiver ligado,
+    // qualquer opção tocada no app é lida em voz alta. Tocar em "Ler" de
+    // novo desliga o modo (e para a fala em andamento).
+    private val _isReadingModeActive = MutableStateFlow(false)
+    val isReadingModeActive: StateFlow<Boolean> = _isReadingModeActive.asStateFlow()
+
+    /** Alterna o modo de leitura e retorna o novo estado (true = ligado). */
+    fun toggleReadingMode(): Boolean {
+        _isReadingModeActive.value = !_isReadingModeActive.value
+        return _isReadingModeActive.value
+    }
+
     // Carrega o contato salvo assim que o app abre e mantém sincronizado
     // com o disco (qualquer save/clear reflete aqui automaticamente).
     val emergencyContact: StateFlow<EmergencyContact?> =

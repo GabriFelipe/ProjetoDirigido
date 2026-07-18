@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import com.example.projetodirigido.model.EmergencyContact
 import com.example.projetodirigido.model.EmergencyNumbers
 import com.example.projetodirigido.ui.theme.AppColors
+import com.example.projetodirigido.ui.theme.LocalReadAloud
 import com.example.projetodirigido.util.rememberPhoneCaller
 
 /**
@@ -72,6 +73,7 @@ fun EmergencySection(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
+            val readAloud = LocalReadAloud.current
             EmergencyNumbers.list.forEach { number ->
                 EmergencyCallButton(
                     label = number.name,
@@ -79,7 +81,10 @@ fun EmergencySection(
                     icon = emojiFor(number.name),
                     colors = colors,
                     fontScale = fontScale,
-                    onClick = { call(number.phone) },
+                    onClick = {
+                        readAloud(number.name)
+                        call(number.phone)
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -106,6 +111,7 @@ private fun FamilyContactCard(
     // A chave (contact == null) faz esse estado resetar sozinho para "fechado"
     // assim que o primeiro cadastro é salvo (transição null -> não-null).
     var isEditing by remember(contact == null) { mutableStateOf(contact == null) }
+    val readAloud = LocalReadAloud.current
 
     Column(
         modifier = Modifier
@@ -151,7 +157,7 @@ private fun FamilyContactCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedButton(
-                    onClick = { isEditing = true },
+                    onClick = { readAloud("Editar contato"); isEditing = true },
                     shape = RoundedCornerShape(50),
                     border = BorderStroke(1.dp, colors.border),
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -167,7 +173,7 @@ private fun FamilyContactCard(
                     )
                 }
                 Button(
-                    onClick = { onCall(contact.phone) },
+                    onClick = { readAloud("Ligar para ${contact.name}"); onCall(contact.phone) },
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colors.dangerButton,
@@ -287,6 +293,7 @@ private fun FamilyContactCard(
             ) {
                 Button(
                     onClick = {
+                        readAloud(if (contact != null) "Salvar alterações" else "Salvar contato")
                         val saved = onSaveContact(name, phone)
                         if (saved) {
                             isEditing = false
@@ -317,7 +324,7 @@ private fun FamilyContactCard(
                 // "Canc" / "elar" como acontecia ao lado do botão largo.
                 if (contact != null) {
                     TextButton(
-                        onClick = { isEditing = false },
+                        onClick = { readAloud("Cancelar"); isEditing = false },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(

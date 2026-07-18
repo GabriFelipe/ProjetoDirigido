@@ -22,6 +22,7 @@ import com.example.projetodirigido.model.Tutorial
 import com.example.projetodirigido.ui.components.InstallableAppCard
 import com.example.projetodirigido.ui.components.TutorialCard
 import com.example.projetodirigido.ui.theme.AppColors
+import com.example.projetodirigido.ui.theme.LocalReadAloud
 import com.example.projetodirigido.util.IntentHelper
 
 /**
@@ -50,6 +51,7 @@ fun LearnScreen(
     installableApps: List<InstallableApp> = DefaultInstallableApps.list
 ) {
     val context = LocalContext.current
+    val readAloud = LocalReadAloud.current
 
     Column(modifier = modifier.fillMaxSize()) {
         // Botão "Voltar" sempre visível no topo da guia, para o usuário
@@ -62,7 +64,7 @@ fun LearnScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(
-                onClick = onBack,
+                onClick = { readAloud("Voltar"); onBack() },
                 shape = MaterialTheme.shapes.extraLarge,
                 border = BorderStroke(1.dp, colors.border),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -104,7 +106,10 @@ fun LearnScreen(
                     colors = colors,
                     fontScale = fontScale,
                     isHighContrast = isHighContrast,
-                    onClick = { onOpenTutorial(tutorial) }
+                    onClick = {
+                        readAloud("${tutorial.title}. ${tutorial.subtitle}")
+                        onOpenTutorial(tutorial)
+                    }
                 )
             }
 
@@ -130,7 +135,10 @@ fun LearnScreen(
                     app = app,
                     colors = colors,
                     fontScale = fontScale,
-                    onClick = { IntentHelper.openPlayStore(context, app.playStorePackage) }
+                    onClick = {
+                        readAloud(app.title)
+                        IntentHelper.openPlayStore(context, app.playStorePackage)
+                    }
                 )
             }
         }

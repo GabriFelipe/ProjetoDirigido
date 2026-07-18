@@ -24,6 +24,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.projetodirigido.model.BankOption
 import com.example.projetodirigido.model.DefaultBanks
 import com.example.projetodirigido.ui.theme.AppColors
+import com.example.projetodirigido.ui.theme.LocalReadAloud
 import com.example.projetodirigido.ui.theme.scaledDp
 
 /**
@@ -42,6 +43,7 @@ fun BankPickerDialog(
     onBankSelected: (BankOption) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val readAloud = LocalReadAloud.current
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -76,7 +78,10 @@ fun BankPickerDialog(
                         bank = bank,
                         colors = colors,
                         fontScale = fontScale,
-                        onClick = { onBankSelected(bank) }
+                        onClick = {
+                            readAloud(bank.name)
+                            onBankSelected(bank)
+                        }
                     )
                 }
             }
@@ -90,7 +95,7 @@ fun BankPickerDialog(
                 color = colors.textSecondary,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onDismiss)
+                    .clickable(onClick = { readAloud("Cancelar"); onDismiss() })
                     .padding(vertical = 8.dp),
             )
         }

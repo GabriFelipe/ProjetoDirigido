@@ -13,6 +13,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.projetodirigido.ui.theme.AppColors
+import com.example.projetodirigido.ui.theme.LocalReadAloud
 
 /**
  * Barra fixa no topo com o nome do app e os controles de acessibilidade.
@@ -31,6 +32,7 @@ fun AccessibleTopBar(
     onIncreaseFont: () -> Unit,
     onToggleContrast: () -> Unit,
     onReadScreen: () -> Unit,
+    isReadingModeActive: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -60,7 +62,12 @@ fun AccessibleTopBar(
                 modifier = Modifier.weight(1f)
             )
 
-            TopBarButton(text = "🔊 Ler", fontScale = fontScale, colors = colors, onClick = onReadScreen)
+            TopBarButton(
+                text = if (isReadingModeActive) "🔊 Ler ✓" else "🔊 Ler",
+                fontScale = fontScale,
+                colors = colors,
+                onClick = onReadScreen
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -76,13 +83,24 @@ fun AccessibleTopBar(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TopBarButton(text = "− A", fontScale = fontScale, colors = colors, onClick = onDecreaseFont)
-            TopBarButton(text = "+ A", fontScale = fontScale, colors = colors, onClick = onIncreaseFont)
+            val readAloud = LocalReadAloud.current
+            TopBarButton(
+                text = "− A",
+                fontScale = fontScale,
+                colors = colors,
+                onClick = { readAloud("Diminuir fonte"); onDecreaseFont() }
+            )
+            TopBarButton(
+                text = "+ A",
+                fontScale = fontScale,
+                colors = colors,
+                onClick = { readAloud("Aumentar fonte"); onIncreaseFont() }
+            )
             TopBarButton(
                 text = if (isHighContrast) "Contraste ✓" else "Contraste",
                 fontScale = fontScale,
                 colors = colors,
-                onClick = onToggleContrast
+                onClick = { readAloud("Alto contraste"); onToggleContrast() }
             )
         }
     }
