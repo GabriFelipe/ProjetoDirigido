@@ -30,7 +30,7 @@ fun AccessibleTopBar(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // Linha 1: apenas o nome do app + botão de leitura em voz alta.
+        // Linha 1: apenas o nome do app
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

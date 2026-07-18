@@ -6,7 +6,7 @@ import androidx.compose.runtime.compositionLocalOf
  * Escala de fonte aplicada em todo o app (multiplicador sobre o tamanho base).
  * Controlada pelos botões "A-" e "A+" na barra superior.
  */
-val LocalFontScale = compositionLocalOf { 1f }
+val LocalFontScale = compositionLocalOf { 0.9f }
 
 /** Ativa/desativa o modo de alto contraste (fundo/texto com contraste reforçado). */
 val LocalHighContrast = compositionLocalOf { false }

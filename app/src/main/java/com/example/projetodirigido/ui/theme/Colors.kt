@@ -15,7 +15,10 @@ data class AppColors(
     val dangerBorder: Color = Color(0xFFE0453B),
     val dangerText: Color = Color(0xFFC62828),
     val dangerButton: Color = Color(0xFFD32F2F),
-    val onDangerButton: Color = Color(0xFFFFFFFF)
+    val onDangerButton: Color = Color(0xFFFFFFFF),
+    // Cor do texto de destaque discreto (ex: duração dos tutoriais na guia
+    // "Aprenda Passo a Passo"), verde suave para remeter a algo positivo/leve.
+    val accentText: Color = Color(0xFF3A8B5C)
 )
 
 val DefaultColors = AppColors(
@@ -40,5 +43,6 @@ val HighContrastColors = AppColors(
     dangerBorder = Color(0xFFFF6659),
     dangerText = Color(0xFFFF8A80),
     dangerButton = Color(0xFFFF5449),
-    onDangerButton = Color(0xFF000000)
+    onDangerButton = Color(0xFF000000),
+    accentText = Color(0xFFFFD54F)
 )
