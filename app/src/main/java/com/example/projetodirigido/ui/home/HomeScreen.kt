@@ -27,6 +27,7 @@ import com.example.projetodirigido.ui.components.AccessibleTopBar
 import com.example.projetodirigido.ui.components.BankPickerDialog
 import com.example.projetodirigido.ui.components.EmergencySection
 import com.example.projetodirigido.ui.components.ShortcutCard
+import com.example.projetodirigido.ui.components.WhatsAppSection
 import com.example.projetodirigido.ui.learn.LearnScreen
 import com.example.projetodirigido.ui.learn.TutorialDetailScreen
 import com.example.projetodirigido.ui.learn.buildTutorialSpeech
@@ -57,6 +58,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
     val fontScale by viewModel.fontScale.collectAsState()
     val highContrast by viewModel.highContrast.collectAsState()
     val emergencyContact by viewModel.emergencyContact.collectAsState()
+    val whatsappContact by viewModel.whatsappContact.collectAsState()
     val isReadingModeActive by viewModel.isReadingModeActive.collectAsState()
     val colors = if (highContrast) HighContrastColors else DefaultColors
 
@@ -228,6 +230,27 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                                         }
                                     }
                                 )
+                            }
+
+                            item {
+                                Column(modifier = Modifier.padding(top = 20.dp)) {
+                                    WhatsAppSection(
+                                        colors = colors,
+                                        fontScale = fontScale,
+                                        contact = whatsappContact,
+                                        onSaveAndOpen = { name, phone ->
+                                            val saved = viewModel.saveWhatsAppContact(name, phone)
+                                            if (saved) {
+                                                IntentHelper.openWhatsAppChat(
+                                                    context,
+                                                    phone,
+                                                    "Olá $name, estou te mandando essa mensagem pelo aplicativo."
+                                                )
+                                            }
+                                            saved
+                                        }
+                                    )
+                                }
                             }
 
                             item {

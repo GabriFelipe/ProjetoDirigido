@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.projetodirigido.data.EmergencyContactRepository
+import com.example.projetodirigido.data.WhatsAppContactRepository
 import com.example.projetodirigido.model.AppShortcut
 import com.example.projetodirigido.model.DefaultShortcuts
 import com.example.projetodirigido.model.EmergencyContact
@@ -30,6 +31,7 @@ import kotlinx.coroutines.launch
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val emergencyContactRepository = EmergencyContactRepository(application)
+    private val whatsappContactRepository = WhatsAppContactRepository(application)
 
     private val _fontScale = MutableStateFlow(1f)
     val fontScale: StateFlow<Float> = _fontScale.asStateFlow()
@@ -53,6 +55,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     // com o disco (qualquer save/clear reflete aqui automaticamente).
     val emergencyContact: StateFlow<EmergencyContact?> =
         emergencyContactRepository.contactFlow.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null
+        )
+
+    val whatsappContact: StateFlow<EmergencyContact?> =
+        whatsappContactRepository.contactFlow.stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = null
@@ -88,6 +97,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             emergencyContactRepository.save(EmergencyContact(name = cleanName, phone = cleanPhone))
+        }
+        return true
+    }
+
+    fun saveWhatsAppContact(name: String, phone: String): Boolean {
+        val cleanName = name.trim()
+        val cleanPhone = phone.filter { it.isDigit() }
+
+        if (cleanName.isEmpty() || cleanPhone.length < 8) {
+            return false
+        }
+
+        viewModelScope.launch {
+            whatsappContactRepository.save(EmergencyContact(name = cleanName, phone = cleanPhone))
         }
         return true
     }

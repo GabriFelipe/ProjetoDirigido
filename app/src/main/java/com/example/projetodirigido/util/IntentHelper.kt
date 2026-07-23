@@ -81,10 +81,23 @@ object IntentHelper {
      * Fluxo "1 clique WhatsApp": abre a conversa direto com o número informado
      * (com DDI) e uma mensagem pré-preenchida, sem precisar salvar o contato antes.
      *
-     * @param phoneWithDdi Número completo, ex: "5511999999999" (sem espaços, +, ou traços).
+     * @param phoneWithDdi Número informado pelo usuário (pode estar com ou sem 55).
      */
     fun openWhatsAppChat(context: Context, phoneWithDdi: String, prefilledMessage: String) {
-        val cleanPhone = phoneWithDdi.filter { it.isDigit() }
+        var cleanPhone = phoneWithDdi.filter { it.isDigit() }
+
+        // Remove o '0' do início se o usuário digitou (ex: 011... -> 11...)
+        if (cleanPhone.startsWith("0")) {
+            cleanPhone = cleanPhone.substring(1)
+        }
+
+        // Se o número tem 10 ou 11 dígitos (DDD + número), assume que é Brasil
+        // e adiciona o DDI 55 automaticamente para o WhatsApp não confundir
+        // com outros países (ex: +1 dos EUA).
+        if ((cleanPhone.length == 10 || cleanPhone.length == 11) && !cleanPhone.startsWith("55")) {
+            cleanPhone = "55$cleanPhone"
+        }
+
         val encodedMessage = Uri.encode(prefilledMessage)
         val url = "https://wa.me/$cleanPhone?text=$encodedMessage"
         openUrl(context, url)

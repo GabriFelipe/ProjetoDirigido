@@ -16,6 +16,12 @@ data class AppColors(
     val dangerText: Color = Color(0xFFC62828),
     val dangerButton: Color = Color(0xFFD32F2F),
     val onDangerButton: Color = Color(0xFFFFFFFF),
+    // Paleta usada no cartão de WhatsApp (fundo e bordas azuis, botão verde).
+    val infoBackground: Color = Color(0xFFE3F2FD),
+    val infoBorder: Color = Color(0xFF2196F3),
+    val infoText: Color = Color(0xFF0D47A1),
+    val whatsappButton: Color = Color(0xFF25D366),
+    val onWhatsappButton: Color = Color(0xFFFFFFFF),
     // Cor do texto de destaque discreto (ex: duração dos tutoriais na guia
     // "Aprenda Passo a Passo"), verde suave para remeter a algo positivo/leve.
     val accentText: Color = Color(0xFF3A8B5C)
@@ -44,5 +50,10 @@ val HighContrastColors = AppColors(
     dangerText = Color(0xFFFF8A80),
     dangerButton = Color(0xFFFF5449),
     onDangerButton = Color(0xFF000000),
+    infoBackground = Color(0xFF0D1B2A),
+    infoBorder = Color(0xFF64B5F6),
+    infoText = Color(0xFFBBDEFB),
+    whatsappButton = Color(0xFF25D366),
+    onWhatsappButton = Color(0xFF000000),
     accentText = Color(0xFFFFD54F)
 )
