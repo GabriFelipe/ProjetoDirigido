@@ -63,6 +63,13 @@ object DefaultShortcuts {
             fallbackUrl = "https://www.google.com"
         ),
         AppShortcut(
+            title = "Fotos e Vídeos",
+            subtitle = "Veja suas fotos e vídeos no celular pelo Google Fotos",
+            emojiIcon = "🖼️",
+            packageName = "com.google.android.apps.photos",
+            fallbackUrl = "https://photos.google.com/"
+        ),
+        AppShortcut(
             title = "Acesse seu banco",
             subtitle = "Escolha seu banco para entrar",
             emojiIcon = "🏦",

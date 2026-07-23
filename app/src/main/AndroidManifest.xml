@@ -11,6 +11,12 @@
         android:required="false" />
 
     <queries>
+        <!-- Acrescentado esse bloco Intent para criar gaveta que acha apps-->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+
         <package android:name="com.whatsapp" />
         <package android:name="com.google.android.gm" />
         <package android:name="com.google.android.youtube" />
