@@ -2,6 +2,7 @@ package com.example.projetodirigido.ui.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,7 +13,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.projetodirigido.data.LauncherAppsRepository
+import com.example.projetodirigido.model.LauncherApp
 import com.example.projetodirigido.model.Tutorial
 import com.example.projetodirigido.ui.components.AccessibleTopBar
 import com.example.projetodirigido.ui.components.BankPickerDialog
@@ -39,6 +41,16 @@ import com.example.projetodirigido.util.IntentHelper
 import com.example.projetodirigido.util.TtsHelper
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import com.example.projetodirigido.ui.apps.AppsScreen
+import com.example.projetodirigido.model.EmergencyContact
+import com.example.projetodirigido.data.AppIconLoader
+
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * Telas navegáveis dentro do HomeScreen. A navegação é feita só com estado
@@ -52,13 +64,67 @@ private sealed class HomeRoute {
     data class TutorialDetail(val tutorial: Tutorial) : HomeRoute()
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
     val context = LocalContext.current
+    val appIconLoader = remember(context.applicationContext) {
+        AppIconLoader(context.applicationContext)
+    }
+
+    DisposableEffect(appIconLoader) {
+        onDispose {
+            appIconLoader.close()
+        }
+    }
+
+    val homePagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { 2 }
+    )
+    val launcherAppsRepository = remember(context) {
+        LauncherAppsRepository(context.applicationContext)
+    }
+
+    var installedApps by remember {
+        mutableStateOf<List<LauncherApp>>(emptyList())
+    }
+
+    LaunchedEffect(Unit) {
+        installedApps = withContext(Dispatchers.IO) {
+            launcherAppsRepository.loadApps()
+        }
+    }
+
+    LaunchedEffect(
+        homePagerState.currentPage,
+        installedApps,
+        appIconLoader
+    ) {
+        if (
+            homePagerState.currentPage == 1 &&
+            installedApps.isNotEmpty()
+        ) {
+            coroutineScope {
+                installedApps
+                    .take(24)
+                    .forEach { app ->
+                        launch(Dispatchers.IO) {
+                            appIconLoader.load(
+                                app = app,
+                                targetSizePx = 96
+                            )
+                        }
+                    }
+            }
+        }
+    }
+
+
     val fontScale by viewModel.fontScale.collectAsState()
     val highContrast by viewModel.highContrast.collectAsState()
     val emergencyContact by viewModel.emergencyContact.collectAsState()
-    val whatsappContact by viewModel.whatsappContact.collectAsState()
+    val whatsappContact: EmergencyContact? by viewModel.whatsappContact.collectAsState()
     val isReadingModeActive by viewModel.isReadingModeActive.collectAsState()
     val colors = if (highContrast) HighContrastColors else DefaultColors
 
@@ -153,133 +219,63 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
 
             when (val currentRoute = route) {
                 is HomeRoute.Shortcuts -> {
-                    val gridState = rememberLazyGridState()
-
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        LazyVerticalGrid(
-                            state = gridState,
-                            // Coluna única e de largura total: com 2 colunas fixas,
-                            // nomes mais longos ("Banco do Brasil", "Previsão do
-                            // tempo") ou a fonte ampliada (botão "+A") deixavam o
-                            // card estreito demais e o texto era cortado
-                            // ("Banco ...", "Previs..."). Em largura total, o
-                            // texto sempre tem espaço para quebrar linha em vez
-                            // de truncar, em qualquer tamanho de fonte.
-                            columns = GridCells.Fixed(1),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
-                            contentPadding = PaddingValues(bottom = 24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            item {
-                                Column(modifier = Modifier.padding(vertical = 12.dp)) {
-                                    Text(
-                                        text = today,
-                                        fontSize = (13 * fontScale).sp,
-                                        color = colors.textSecondary
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = greeting,
-                                        fontSize = (26 * fontScale).sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textPrimary
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = subtitle,
-                                        fontSize = (15 * fontScale).sp,
-                                        color = colors.textSecondary
-                                    )
-                                }
-                            }
-
-                            item {
-                                LearnEntryCard(
+                    HorizontalPager(
+                        state = homePagerState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) { page ->
+                        when (page) {
+                            0 -> {
+                                ShortcutsHomeContent(
+                                    viewModel = viewModel,
                                     colors = colors,
                                     fontScale = fontScale,
-                                    onClick = { route = HomeRoute.Learn }
-                                )
-                            }
-
-                            item {
-                                Text(
-                                    text = "Atalhos rápidos",
-                                    fontSize = (20 * fontScale).sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textPrimary,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-
-                            items(viewModel.shortcuts) { shortcut ->
-                                ShortcutCard(
-                                    shortcut = shortcut,
-                                    colors = colors,
-                                    fontScale = fontScale,
-                                    onClick = {
-                                        readAloud(shortcut.title)
-                                        when {
-                                            shortcut.opensBankPicker -> showBankPicker = true
-                                            shortcut.searchQuery != null ->
-                                                IntentHelper.openGoogleSearch(context, shortcut.searchQuery)
-                                            else ->
-                                                IntentHelper.openApp(context, shortcut.packageName, shortcut.fallbackUrl)
-                                        }
+                                    today = today,
+                                    greeting = greeting,
+                                    subtitle = subtitle,
+                                    emergencyContact = emergencyContact,
+                                    whatsappContact = whatsappContact,
+                                    readAloud = readAloud,
+                                    onOpenLearn = {
+                                        route = HomeRoute.Learn
+                                    },
+                                    onShowBankPicker = {
+                                        showBankPicker = true
                                     }
                                 )
                             }
 
-                            item {
-                                Column(modifier = Modifier.padding(top = 20.dp)) {
-                                    WhatsAppSection(
-                                        colors = colors,
-                                        fontScale = fontScale,
-                                        contact = whatsappContact,
-                                        onSaveAndOpen = { name, phone ->
-                                            val saved = viewModel.saveWhatsAppContact(name, phone)
-                                            if (saved) {
-                                                IntentHelper.openWhatsAppChat(
-                                                    context,
-                                                    phone,
-                                                    "Olá $name, estou te mandando essa mensagem pelo aplicativo."
-                                                )
-                                            }
-                                            saved
-                                        }
-                                    )
-                                }
-                            }
+                            1 -> {
+                                AppsScreen(
+                                    apps = installedApps,
+                                    iconLoader = appIconLoader,
+                                    fontScale = fontScale,
+                                    onOpenApp = { app ->
+                                        readAloud(app.label)
 
-                            item {
-                                Column(modifier = Modifier.padding(top = 20.dp)) {
-                                    EmergencySection(
-                                        colors = colors,
-                                        fontScale = fontScale,
-                                        contact = emergencyContact,
-                                        onSaveContact = { name, phone ->
-                                            viewModel.saveEmergencyContact(name, phone)
-                                        }
-                                    )
-                                }
+                                        IntentHelper.openLauncherApp(
+                                            context = context,
+                                            componentName = app.componentName()
+                                        )
+                                    }
+                                )
                             }
                         }
-
-                        // Barra de rolagem lateral escondida a pedido: o
-                        // LazyVerticalGrid continua rolável normalmente, só a
-                        // "pílula" visual do lado direito não é mais desenhada.
                     }
                 }
 
-                is HomeRoute.Learn -> {
+                HomeRoute.Learn -> {
                     LearnScreen(
                         colors = colors,
                         fontScale = fontScale,
                         isHighContrast = highContrast,
-                        onOpenTutorial = { tutorial -> route = HomeRoute.TutorialDetail(tutorial) },
-                        onBack = { route = HomeRoute.Shortcuts }
+                        onOpenTutorial = { tutorial ->
+                            route = HomeRoute.TutorialDetail(tutorial)
+                        },
+                        onBack = {
+                            route = HomeRoute.Shortcuts
+                        }
                     )
                 }
 
@@ -288,9 +284,13 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                         tutorial = currentRoute.tutorial,
                         colors = colors,
                         fontScale = fontScale,
-                        onBack = { route = HomeRoute.Learn },
+                        onBack = {
+                            route = HomeRoute.Learn
+                        },
                         onReadTutorial = {
-                            ttsHelper.speak(buildTutorialSpeech(currentRoute.tutorial))
+                            ttsHelper.speak(
+                                buildTutorialSpeech(currentRoute.tutorial)
+                            )
                         }
                     )
                 }
@@ -307,6 +307,170 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel()) {
                 },
                 onDismiss = { showBankPicker = false }
             )
+        }
+    }
+}
+
+@Composable
+private fun ShortcutsHomeContent(
+    viewModel: HomeViewModel,
+    colors: AppColors,
+    fontScale: Float,
+    today: String,
+    greeting: String,
+    subtitle: String,
+    emergencyContact: EmergencyContact?,
+    whatsappContact: EmergencyContact?,
+    readAloud: (String) -> Unit,
+    onOpenLearn: () -> Unit,
+    onShowBankPicker: () -> Unit
+) {
+    val context = LocalContext.current
+
+    val gridState = rememberLazyGridState()
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        LazyVerticalGrid(
+            state = gridState,
+            columns = GridCells.Fixed(1),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Column(
+                    modifier = Modifier.padding(vertical = 12.dp)
+                ) {
+                    Text(
+                        text = today,
+                        fontSize = (13 * fontScale).sp,
+                        color = colors.textSecondary
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
+                    Text(
+                        text = greeting,
+                        fontSize = (26 * fontScale).sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
+                    Text(
+                        text = subtitle,
+                        fontSize = (15 * fontScale).sp,
+                        color = colors.textSecondary
+                    )
+                }
+            }
+
+            item {
+                LearnEntryCard(
+                    colors = colors,
+                    fontScale = fontScale,
+                    onClick = onOpenLearn
+                )
+            }
+
+            item {
+                Text(
+                    text = "Atalhos rápidos",
+                    fontSize = (20 * fontScale).sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            items(viewModel.shortcuts) { shortcut ->
+                ShortcutCard(
+                    shortcut = shortcut,
+                    colors = colors,
+                    fontScale = fontScale,
+                    onClick = {
+                        readAloud(shortcut.title)
+
+                        when {
+                            shortcut.opensBankPicker -> {
+                                onShowBankPicker()
+                            }
+
+                            shortcut.searchQuery != null -> {
+                                IntentHelper.openGoogleSearch(
+                                    context,
+                                    shortcut.searchQuery
+                                )
+                            }
+
+                            else -> {
+                                IntentHelper.openApp(
+                                    context,
+                                    shortcut.packageName,
+                                    shortcut.fallbackUrl
+                                )
+                            }
+                        }
+                    }
+                )
+            }
+
+            item {
+                Column(
+                    modifier = Modifier.padding(top = 20.dp)
+                ) {
+                    WhatsAppSection(
+                        colors = colors,
+                        fontScale = fontScale,
+                        contact = whatsappContact,
+                        onSaveAndOpen = { name, phone ->
+                            val saved =
+                                viewModel.saveWhatsAppContact(
+                                    name,
+                                    phone
+                                )
+
+                            if (saved) {
+                                IntentHelper.openWhatsAppChat(
+                                    context,
+                                    phone,
+                                    "Olá $name, estou te mandando essa mensagem pelo aplicativo."
+                                )
+                            }
+
+                            saved
+                        }
+                    )
+                }
+            }
+
+            item {
+                Column(
+                    modifier = Modifier.padding(top = 20.dp)
+                ) {
+                    EmergencySection(
+                        colors = colors,
+                        fontScale = fontScale,
+                        contact = emergencyContact,
+                        onSaveContact = { name, phone ->
+                            viewModel.saveEmergencyContact(
+                                name,
+                                phone
+                            )
+                        }
+                    )
+                }
+            }
         }
     }
 }

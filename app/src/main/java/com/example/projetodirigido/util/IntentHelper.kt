@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import android.content.ComponentName
 
 /**
  * Centraliza a lógica de abrir um app pelo package name.
@@ -26,6 +27,29 @@ object IntentHelper {
             // visibilidade de pacotes do Android 11+), cai para o navegador
             // em vez de travar o app.
             openUrl(context, fallbackUrl)
+        }
+    }
+    fun openLauncherApp(
+        context: Context,
+        componentName: ComponentName
+    ) {
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            component = componentName
+
+            flags =
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+        }
+
+        runCatching {
+            context.startActivity(intent)
+        }.onFailure {
+            Toast.makeText(
+                context,
+                "Não foi possível abrir este aplicativo.",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

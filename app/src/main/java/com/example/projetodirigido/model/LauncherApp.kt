@@ -7,7 +7,11 @@ import androidx.compose.ui.graphics.Color
 data class LauncherApp(
     val label: String,
     val packageName: String,
-    val componentName: ComponentName,
-    val icon: Bitmap,
-    val backgroundColor: Color
-)
+    val activityName: String
+) {
+    val key: String = "$packageName/$activityName"
+
+    fun componentName(): ComponentName {
+        return ComponentName(packageName, activityName)
+    }
+}

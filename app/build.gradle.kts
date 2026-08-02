@@ -41,11 +41,27 @@ android {
 }
 
 dependencies {
-    implementation("androidx.activity:activity-compose:1.9.0")
-    implementation("androidx.compose.material3:material3:1.2.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
-    implementation("androidx.compose.foundation:foundation:1.6.7")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    val composeBom =
+        platform("androidx.compose:compose-bom:2026.06.00")
+
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+
+    // Mantém activity-compose alinhado com activity-ktx do projeto.
+    implementation("androidx.activity:activity-compose:1.13.0")
+
+    // Versões controladas pelo Compose BOM.
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.foundation:foundation")
+
+    implementation(
+        "androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0"
+    )
+
+    implementation(
+        "androidx.datastore:datastore-preferences:1.1.1"
+    )
+
 
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.appcompat)
